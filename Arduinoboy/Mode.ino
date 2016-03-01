@@ -10,19 +10,19 @@
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
- 
+
 /* ***************************************************************************/
 /* "Mode" Functions. Deals with changing the setup of arduino.              */
 /* ***************************************************************************/
 
  /*
-   setMode will check if the push button is depressed, If it is it will 
-   increment the mode number and make sure its in the 
+   setMode will check if the push button is depressed, If it is it will
+   increment the mode number and make sure its in the
    range 0 to 4 by mod (%). It will then write the mode to memory,
    set the leds to display the mode, and switch the code over to the
    right function.
  */
- 
+
 
 void setMode()
 {
@@ -39,7 +39,7 @@ void setMode()
 
  /*
    switchMode is only called from setMode. its responsible for
-   linking the mode number to its corrisponding function, 
+   linking the mode number to its corrisponding function,
    and then calling that function. function. function.
  */
 void switchMode()
@@ -65,6 +65,9 @@ void switchMode()
       modeLSDJMapSetup();
       break;
     case 6:
+      modeKeyboardSetup();
+      break;
+    case 7:
       modeLSDJMidioutSetup();
       break;
   }
@@ -76,11 +79,11 @@ void switchMode()
 /* ***************************************************************************/
 
  /*
-   sequencerStart is called when either LSDJ has started to play in master mode, 
+   sequencerStart is called when either LSDJ has started to play in master mode,
    or when a MIDI Start or continue command is received in lsdj slave mode.
    Basically it just resets some counters we use and sets a "start" flag.
  */
- 
+
 void sequencerStart()
 {
   sequencerStarted = true; //Sequencer has started?
@@ -110,5 +113,3 @@ void sequencerStop()
   digitalWrite(pinLeds[3],LOW);
   digitalWrite(pinLeds[memory[MEM_MODE]],HIGH);
 }
-
-

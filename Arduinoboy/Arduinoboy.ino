@@ -26,7 +26,7 @@
  *                                                                         *
  *  As of version 1.1.0 Gameboy Pins have changes from 5,6,7 to Analog in  *
  *  pins 0,1,2 ... This allows direct port access which not interfearing   *
- *  with serial communication. There are no more "delay" settings, and     * 
+ *  with serial communication. There are no more "delay" settings, and     *
  *  everything seems much faster / better now.                             *
  *                                                                         *
  *  http://code.google.com/p/arduinoboy/                                   *
@@ -75,7 +75,7 @@
  ***************************************************************************/
 #include <EEPROM.h>
 #define MEM_MAX 65
-#define NUMBER_OF_MODES 7    //Right now there are 7 modes, Might be more in the future
+#define NUMBER_OF_MODES 8    //Right now there are 7 modes, Might be more in the future
 
 //!!! do not edit these, they are the position in EEPROM memory that contain the value of each stored setting
 #define MEM_CHECK 0
@@ -120,28 +120,28 @@ byte defaultMemoryMap[MEM_MAX] = {
   0x7F,0x01,0x02,0x7F, //memory init check
   0x00, //force mode (forces lsdj to be sl)
   0x00, //mode
-  
+
   15, //sync effects midi channel (0-15 = 1-16)
   15, //masterNotePositionMidiChannel - LSDJ in master mode will send its song position on the start button via midi note. (0-15 = 1-16)
-  
+
   15, //keyboardInstrumentMidiChannel - midi channel for keyboard instruments in lsdj. (0-15 = 1-16)
   1, //Keyboard Compatability Mode
   1, //Set to true if you want to have midi channel set the instrument number / doesnt do anything anymore
-  
+
   0,1,2,3, //midiOutNoteMessageChannels - midi channels for lsdj midi out note messages Default: channels 1,2,3,4
   0,1,2,3, //midiOutCCMessageChannels - midi channels for lsdj midi out CC messages Default: channels 1,2,3,4
   1,1,1,1, //midiOutCCMode - CC Mode, 0=use 1 midi CC, with the range of 00-6F, 1=uses 7 midi CCs with the
                        //range of 0-F (the command's first digit would be the CC#), either way the value is scaled to 0-127 on output
-  1,1,1,1, //midiOutCCScaling - CC Scaling- Setting to 1 scales the CC value range to 0-127 as oppose to lsdj's incomming 00-6F (0-112) or 0-F (0-15) 
+  1,1,1,1, //midiOutCCScaling - CC Scaling- Setting to 1 scales the CC value range to 0-127 as oppose to lsdj's incomming 00-6F (0-112) or 0-F (0-15)
   1,2,3,7,10,11,12, //pu1: midiOutCCMessageNumbers - CC numbers for lsdj midi out, if CCMode is 1, all 7 ccs are used per channel at the cost of a limited resolution of 0-F
   1,2,3,7,10,11,12, //pu2
   1,2,3,7,10,11,12, //wav
   1,2,3,7,10,11,12, //noi
-  
+
   0, 1, 2, 3, 4, //mGB midi channels (0-15 = 1-16)
   15, //livemap / sync map midi channel (0-15 = 1-16)
-  80,1,  //midiout bit check delay & bit check delay multiplier 
-  0,0//midiout byte received delay & byte received delay multiplier 
+  80,1,  //midiout bit check delay & bit check delay multiplier
+  0,0//midiout byte received delay & byte received delay multiplier
 };
 byte memory[MEM_MAX];
 
@@ -273,7 +273,7 @@ byte midiStatusChannel;
 
 /***************************************************************************
 * LSDJ Keyboard mode settings
-***************************************************************************/      
+***************************************************************************/
 byte keyboardNotes[] = {0x1A,0x1B,0x22,0x23,0x21,0x2A,0x34,0x32,0x33,0x31,0x3B,0x3A,
                          0x15,0x1E,0x1D,0x26,0x24,0x2D,0x2E,0x2C,0x36,0x35,0x3D,0x3C};
 byte keyboardOctDn = 0x05;
@@ -325,16 +325,16 @@ void setup() {
 */
   for(int led=0;led<=5;led++) pinMode(pinLeds[led],OUTPUT);
   pinMode(pinStatusLed,OUTPUT);
-  pinMode(pinButtonMode,INPUT); 
+  pinMode(pinButtonMode,INPUT);
   DDRC = B00111111; //Set analog in pins as outputs
-  
+
 /*
   Set MIDI Serial Rate
 */
   if(usbMode == true) {
     Serial.begin(38400); //31250
   } else {
-    pinMode(pinMidiInputPower,OUTPUT); 
+    pinMode(pinMidiInputPower,OUTPUT);
     digitalWrite(pinMidiInputPower,HIGH); // turn on the optoisolator
     Serial.begin(31250); //31250
   }
@@ -367,9 +367,9 @@ void setup() {
 */
   if(!memory[MEM_FORCE_MODE]) memory[MEM_MODE] = EEPROM.read(MEM_MODE);
   lastMode = memory[MEM_MODE];
-  
+
   startupSequence();
-  
+
   showSelectedMode(); //Light up the LED that shows which mode we are in.
 }
 
