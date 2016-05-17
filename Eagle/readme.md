@@ -1,8 +1,5 @@
 # Change log
 
-### 1.1.1
- - Fixed MIDI jack spacing
-
 ### 1.1.0
  - Added PS/2 jack for LSDJ keyboard input
  - Removed screw terminals (nobody used them)
