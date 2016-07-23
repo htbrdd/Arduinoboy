@@ -64,7 +64,10 @@ void switchMode()
     case 5:
       modeLSDJMapSetup();
       break;
-    case 6:
+      case 6:
+      modeKeyboardSetup();
+      break;
+    case 7:
       modeLSDJMidioutSetup();
       break;
   }
