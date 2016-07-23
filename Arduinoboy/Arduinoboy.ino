@@ -10,26 +10,15 @@
  ***************************************************************************
  ***************************************************************************
  *                                                                         *
- * Version: 1.2.3                                                          *
- * Date:    Apr 18 2016                                                    *
+ * Version: 1.3.0a                                                         *
+ * Date:    July 10 2016                                                   *
  * Name:    Timothy Lamb                                                   *
  * Email:   trash80@gmail.com                                              *
- * Updated: David DeGraw                                                   *
- * Email:   bro@catskull.net                                               *
  *                                                                         *
  ***************************************************************************
  ***************************************************************************
  *                                                                         *
  * NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE   *
- * NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE   *
- * NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE   *
- * NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE   *
- * NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE   *
- *                                                                         *
- *  As of version 1.1.0 Gameboy Pins have changes from 5,6,7 to Analog in  *
- *  pins 0,1,2 ... This allows direct port access which not interfearing   *
- *  with serial communication. There are no more "delay" settings, and     *
- *  everything seems much faster / better now.                             *
  *                                                                         *
  *  http://code.google.com/p/arduinoboy/                                   *
  *                                                                         *
@@ -40,6 +29,17 @@
  *     - Gameboy Clock line on analog in pin 0                             *
  *     - Gameboy Serial Data input on analog in pin 1                      *
  *     - Serial Data from gameboy on analog in pin 2                       *
+ *                                                                         *
+ *   Teensy pin settings:                                                  *
+ *     - 7 LEDS on pins 23,22,21,20,4,3,13                                 *
+ *     - Push button on pin 2 (for selecting mode)                         *
+ *     - MIDI Opto-isolator power connected to +3v                         *
+ *     - Gameboy Clock line on pin 17                                      *
+ *     - Gameboy Serial Data input on analog in pin 18                     *
+ *     - Serial Data from gameboy on analog in pin 19                      *
+ *                                                                         *
+ *   Teensy USB MIDI is supported                                          *
+ *   Teensy LC should work but untested                                    *
  *                                                                         *
  * Program Information:                                                    *
  *    LSDJ Slave Mode Midi Note Effects:                                   *
@@ -77,7 +77,7 @@
  ***************************************************************************/
 #include <EEPROM.h>
 #define MEM_MAX 65
-#define NUMBER_OF_MODES 8    //Right now there are 7 modes, Might be more in the future
+#define NUMBER_OF_MODES 7    //Right now there are 7 modes, Might be more in the future
 
 //!!! do not edit these, they are the position in EEPROM memory that contain the value of each stored setting
 #define MEM_CHECK 0
@@ -106,20 +106,16 @@
 #define MEM_MIDIOUT_BIT_DELAY 61
 #define MEM_MIDIOUT_BYTE_DELAY 63
 
-
-
 /***************************************************************************
 * User Settings
 ***************************************************************************/
 
 boolean alwaysUseDefaultSettings = false; //set to true to always use the settings below, else they are pulled from memory for the software editor
 
-
 boolean usbMode                  = false; //to use usb for serial communication as oppose to MIDI - sets baud rate to 38400
 
-
 byte defaultMemoryMap[MEM_MAX] = {
-  0x7F,0x01,0x02,0x7F, //memory init check
+  0x7F,0x01,0x03,0x7F, //memory init check
   0x00, //force mode (forces lsdj to be sl)
   0x00, //mode
 
@@ -141,7 +137,7 @@ byte defaultMemoryMap[MEM_MAX] = {
   1,2,3,7,10,11,12, //noi
 
   0, 1, 2, 3, 4, //mGB midi channels (0-15 = 1-16)
-  15, //livemap / sync map midi channel (0-15 = 1-16)
+  0, //sync map midi channel start (0-15 = 1-16) (for song rows 0x80 to 0xFF it's this channel plus 1)
   80,1,  //midiout bit check delay & bit check delay multiplier
   0,0//midiout byte received delay & byte received delay multiplier
 };
@@ -151,24 +147,52 @@ byte memory[MEM_MAX];
 * Lets Assign our Arduino Pins .....
 ***************************************************************************/
 
-int pinGBClock     = 0;    // Analog In 0 - clock out to gameboy
-int pinGBSerialOut = 1;    // Analog In 1 - serial data to gameboy
-int pinGBSerialIn  = 2;    // Analog In 2 - serial data from gameboy
 
+/***************************************************************************
+* Teensy 3.2, Teensy 3.0, Teensy LC
+*
+* Notes on Teensy: Pins are not the same as in the schematic, the mapping is below.
+* Feel free to change, all related config in is this block.
+* Be sure to compile
+***************************************************************************/
+#if defined (__MK20DX256__) || defined (__MK20DX128__) || defined (__MKL26Z64__)
+#define USE_TEENSY 1
+#define GB_SET(bit_cl,bit_out,bit_in) GPIOB_PDOR = (GPIOB_PDIR & 0xfffffff4) | ((bit_in<<3) | (bit_out<<1) | bit_cl)
+
+int pinGBClock     = 16;    // Analog In 0 - clock out to gameboy
+int pinGBSerialOut = 17;    // Analog In 1 - serial data to gameboy
+int pinGBSerialIn  = 18;    // Analog In 2 - serial data from gameboy
+int pinMidiInputPower = 0; // Not used!
+int pinStatusLed = 13; // Status LED
+int pinLeds[] = {23,22,21,20,4,13}; // LED Pins
+int pinButtonMode = 2; //toggle button for selecting the mode
+
+HardwareSerial *serial = &Serial1;
+
+/***************************************************************************
+* Arudino Atmega 328 (assumed)
+***************************************************************************/
+#else
+#define GB_SET(bit_cl,bit_out,bit_in) PORTC = (PINC & B11111000) | ((bit_in<<2) | ((bit_out)<<1) | bit_cl)
+// ^ The reason for not using digitalWrite is to allign clock and data pins for the GB shift reg.
+
+int pinGBClock     = A0;    // Analog In 0 - clock out to gameboy
+int pinGBSerialOut = A1;    // Analog In 1 - serial data to gameboy
+int pinGBSerialIn  = A2;    // Analog In 2 - serial data from gameboy
 int pinMidiInputPower = 4; // power pin for midi input opto-isolator
-
 int pinStatusLed = 13; // Status LED
 int pinLeds[] = {12,11,10,9,8,13}; // LED Pins
-
 int pinButtonMode = 3; //toggle button for selecting the mode
+
+HardwareSerial *serial = &Serial;
+
+#endif
 
 /***************************************************************************
 * Memory
 ***************************************************************************/
 
 int eepromMemoryByte = 0; //Location of where to store settings from mem
-
-
 
 /***************************************************************************
 * Sysex Settings & vars
@@ -191,7 +215,6 @@ byte longestSysexMessage = 128;
 
 int midioutBitDelay = 0;
 int midioutByteDelay = 0;
-
 
 /***************************************************************************
 * Switches and states
@@ -220,9 +243,9 @@ unsigned long int buttonTime;
 
 boolean blinkSwitch[6];
 unsigned long int blinkSwitchTime[6];
-int switchLight = 0;
+uint8_t switchLight = 0;
 
-int blinkMaxCount = 1000;
+uint16_t blinkMaxCount = 1000;
 
 unsigned long midioutNoteTimer[4];
 byte midioutNoteHold[4][4];
@@ -317,6 +340,24 @@ byte keyboardNoteStart = 0;
 byte keyboardNoteOffset = 0;
 byte keyboardCommands[12];
 
+/***************************************************************************
+* LSDJ Midi Map mode vars
+***************************************************************************/
+int  mapCurrentRow = -1;
+int  mapQueueMessage = -1;
+unsigned long mapQueueTime;
+// mapQueueWait is used for delaying a sync byte
+// if it is called right before a note on message on sequencer start
+// (Note value is also a clock tick)
+uint8_t mapQueueWaitSerial = 2; //2ms
+uint8_t mapQueueWaitUsb = 5; //5ms - Needs to be longer because message packet is processed all at once
+
+/***************************************************************************
+* mGB Settings
+***************************************************************************/
+#define GB_MIDI_DELAY 500 //Microseconds to delay the sending of a byte to gb
+
+
 void setup() {
 /*
   Init Memory
@@ -328,18 +369,26 @@ void setup() {
   for(int led=0;led<=5;led++) pinMode(pinLeds[led],OUTPUT);
   pinMode(pinStatusLed,OUTPUT);
   pinMode(pinButtonMode,INPUT);
-  DDRC = B00111111; //Set analog in pins as outputs
 
+  pinMode(pinGBClock,OUTPUT);
+  pinMode(pinGBSerialIn,INPUT);
+  pinMode(pinGBSerialOut,OUTPUT);
 /*
   Set MIDI Serial Rate
 */
+
+#ifdef USE_TEENSY
+  serial->begin(31250); //31250
+#else
   if(usbMode == true) {
-    Serial.begin(38400); //31250
+    serial->begin(38400);
   } else {
     pinMode(pinMidiInputPower,OUTPUT);
     digitalWrite(pinMidiInputPower,HIGH); // turn on the optoisolator
     Serial.begin(31250); //31250
   }
+#endif
+
 /*
   Set Pin States
 */
@@ -369,6 +418,11 @@ void setup() {
 */
   if(!memory[MEM_FORCE_MODE]) memory[MEM_MODE] = EEPROM.read(MEM_MODE);
   lastMode = memory[MEM_MODE];
+
+/*
+  usbMidi sysex support
+*/
+  usbMidiInit();
 
   startupSequence();
 

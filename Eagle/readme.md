@@ -1,5 +1,14 @@
 # Change log
 
+### 1.1.3
+ - Changed status mode names
+
+### 1.1.2
+ - Fixed PS/2 connection
+
+### 1.1.1
+ - Fixed MIDI jack spacing
+
 ### 1.1.0
  - Added PS/2 jack for LSDJ keyboard input
  - Removed screw terminals (nobody used them)
